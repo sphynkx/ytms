@@ -1,0 +1,115 @@
+openapi: 3.0.3
+info:
+  title: Media Service API
+  version: 0.1.0
+servers:
+  - url: https://media.example.com
+paths:
+  /api/jobs/thumbnails:
+    post:
+      summary: Create thumbnails job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [video_id, out_base_path]
+              properties:
+                video_id: { type: string }
+                src_path: { type: string, description: "Absolute path to source file" }
+                src_url: { type: string, description: "HTTP(S) URL to source file" }
+                out_base_path: { type: string, description: "Base dir to write outputs (e.g. storage/1v/VID)" }
+                interval_sec: { type: number, default: 2.0 }
+                tile_w: { type: integer, default: 160 }
+                tile_h: { type: integer, default: 90 }
+                cols: { type: integer, default: 10 }
+                rows: { type: integer, default: 10 }
+                callback_url: { type: string }
+                auth_token: { type: string }
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id: { type: string }
+  /api/jobs/subtitles/transcribe:
+    post:
+      summary: Transcribe speech to VTT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [video_id, out_base_path]
+              properties:
+                video_id: { type: string }
+                src_path: { type: string }
+                src_url: { type: string }
+                lang_hint: { type: string, description: "ISO code, optional" }
+                engine: { type: string, default: whisper }
+                model: { type: string, default: small }
+                diarization: { type: boolean, default: false }
+                callback_url: { type: string }
+                auth_token: { type: string }
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id: { type: string }
+  /api/jobs/subtitles/translate:
+    post:
+      summary: Translate VTT to multiple languages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [video_id, in_vtt_path, out_base_path, targets]
+              properties:
+                video_id: { type: string }
+                in_vtt_path: { type: string }
+                source_lang: { type: string }
+                targets:
+                  type: array
+                  items: { type: string }
+                engine: { type: string, default: nllb }
+                callback_url: { type: string }
+                auth_token: { type: string }
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id: { type: string }
+  /api/jobs/{id}:
+    get:
+      summary: Get job status
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Job status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id: { type: string }
+                  status: { type: string, enum: [queued, running, succeeded, failed] }
+                  error: { type: string, nullable: true }
