@@ -1,9 +1,8 @@
 import asyncio
 import uuid
 from typing import Dict, Optional, Any
-
-from app.schemas import JobInfo, ThumbnailsJobCreate
-from app.workers import process_thumbnails_job
+from schemas import JobInfo, ThumbnailsJobCreate
+from workers import process_thumbnails_job
 
 class JobManager:
     def __init__(self) -> None:
@@ -50,7 +49,6 @@ class JobManager:
 
     async def shutdown(self):
         self._shutdown.set()
-        # drain queue quickly
         while not self.queue.empty():
             try:
                 self.queue.get_nowait()

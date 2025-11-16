@@ -1,11 +1,11 @@
 from typing import List, Optional, Literal, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 JobStatus = Literal["queued", "running", "succeeded", "failed"]
 
 class ThumbnailsJobCreate(BaseModel):
     video_id: str
-    out_base_path: str  # e.g. storage/1v/VID
+    out_base_path: str
     src_path: Optional[str] = None
     src_url: Optional[str] = None
 

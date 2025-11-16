@@ -1,0 +1,17 @@
+[Unit]
+Description=YT Media Service (ytms)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/ytms
+ExecStart=/opt/ytms/run.sh
+Restart=on-failure
+RestartSec=5
+#User=ytms
+#Group=ytms
+Environment=PYTHONUNBUFFERED=1
+# EnvironmentFile=/opt/ytms/.env
+
+[Install]
+WantedBy=multi-user.target

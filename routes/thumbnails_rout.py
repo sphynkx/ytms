@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Request
-from app.schemas import ThumbnailsJobCreate, JobInfo
+from schemas import ThumbnailsJobCreate, JobInfo
 
 router = APIRouter(tags=["thumbnails"])
 

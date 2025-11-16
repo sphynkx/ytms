@@ -1,8 +1,8 @@
 import asyncio
 from fastapi import FastAPI
-from app.config import settings
-from app.job_manager import JobManager
-from app.routes.thumbnails_rout import router as thumbnails_router
+from config import settings
+from job_manager import JobManager
+from routes.thumbnails_rout import router as thumbnails_router
 
 app = FastAPI(title="YT Media Service (ytms)", version="0.1.0")
 
