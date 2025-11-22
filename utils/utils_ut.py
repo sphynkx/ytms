@@ -122,7 +122,6 @@ def sec_fmt(s: float) -> str:
 
 def write_vtt(
     vtt_path: str,
-    sprites_web_base: str,
     total_frames: int,
     interval_sec: float,
     cols: int,
@@ -139,7 +138,7 @@ def write_vtt(
         idx = i % per_sprite
         x = (idx % cols) * tile_w
         y = (idx // cols) * tile_h
-        sprite_url = f"{sprites_web_base}/sprite_{sidx+1:04d}.jpg"
+        sprite_url = f"sprites/sprite_{sidx+1:04d}.jpg"
         lines.append(f"{sec_fmt(start)} --> {sec_fmt(end)}")
         lines.append(f"{sprite_url}#xywh={x},{y},{tile_w},{tile_h}")
         lines.append("")
@@ -209,17 +208,15 @@ async def generate_thumbnails_pipeline(
     rows: Optional[int],
 ) -> Dict[str, Any]:
     abs_base = out_base_path.rstrip("/")
-    thumbs_dir = os.path.join(abs_base, "thumbnails")
-    frames_dir = os.path.join(thumbs_dir, "frames")
-    sprites_dir = os.path.join(thumbs_dir, "sprites")
 
-    ensure_dir(thumbs_dir)
-    ensure_dir(frames_dir)
+    sprites_dir = os.path.join(abs_base, "sprites")
+    frames_dir = os.path.join(abs_base, "sprites_frames_tmp")
     ensure_dir(sprites_dir)
+    ensure_dir(frames_dir)
 
     source = src_path
     if not source and src_url:
-        source = os.path.join(thumbs_dir, "download_source.webm")
+        source = os.path.join(sprites_dir, "download_source.webm")
         await download_src(src_url, source)
 
     if not source or not os.path.exists(source):
@@ -252,7 +249,7 @@ async def generate_thumbnails_pipeline(
         rough_frames = int(dur / interval_sec)
         if rough_frames > settings.MAX_FRAMES:
             interval_sec = max(settings.MIN_INTERVAL_SEC, dur / settings.MAX_FRAMES)
-            print(f"[FRAME LIMIT] rough_frames={rough_frames} > {settings.MAX_FRAMES} => interval_sec adjusted to {interval_sec:.4f}")
+            print(f"[FRAME LIMIT] rough_frames={rough_frames} > {settings.MAX_FRAMES} => interval_sec={interval_sec:.4f}")
 
     print(f"[PARAMS] interval={interval_sec} tw={tw} th={th} cols={c} rows={r}")
 
@@ -278,13 +275,10 @@ async def generate_thumbnails_pipeline(
         tile_h=th,
     )
 
-    sprites_rel_base = "thumbnails/sprites"
-    vtt_rel = "thumbnails/thumbs.vtt"
+    vtt_rel = "sprites.vtt"
     vtt_abs = os.path.join(abs_base, vtt_rel)
-
     write_vtt(
         vtt_path=vtt_abs,
-        sprites_web_base=sprites_rel_base,
         total_frames=len(frames),
         interval_sec=interval_sec,
         cols=c,
@@ -308,7 +302,7 @@ async def generate_thumbnails_pipeline(
 
     result = {
         "vtt": {"path": vtt_rel},
-        "sprites": [{"path": f"thumbnails/sprites/{os.path.basename(p)}"} for p in sprites],
+        "sprites": [{"path": f"sprites/{os.path.basename(p)}"} for p in sprites],
         "meta": {
             "frames": len(frames),
             "interval": interval_sec,
