@@ -13,6 +13,7 @@ def ensure_dir(p: str):
     os.makedirs(p, exist_ok=True)
 
 
+
 async def probe_duration_sec(src: str) -> float | None:
     cmd = [
         "ffprobe",
@@ -37,6 +38,7 @@ async def probe_duration_sec(src: str) -> float | None:
         print("[FFPROBE MISSING] ffprobe not found")
         return None
     return None
+
 
 
 async def probe_video_dims(src: str) -> Tuple[Optional[int], Optional[int]]:
@@ -68,10 +70,12 @@ async def probe_video_dims(src: str) -> Tuple[Optional[int], Optional[int]]:
     return None, None
 
 
+
 def list_frames(frames_dir: str) -> List[str]:
     files = [f for f in os.listdir(frames_dir) if f.lower().startswith("frame_") and f.lower().endswith(".jpg")]
     files.sort()
     return [os.path.join(frames_dir, f) for f in files]
+
 
 
 def pack_sprites(
@@ -107,11 +111,13 @@ def pack_sprites(
     return sprite_paths
 
 
+
 def sec_fmt(s: float) -> str:
     h = int(s // 3600)
     m = int((s % 3600) // 60)
     ss = s - h*3600 - m*60
     return f"{h:02d}:{m:02d}:{ss:06.3f}"
+
 
 
 def write_vtt(
@@ -143,6 +149,7 @@ def write_vtt(
     print(f"[VTT WRITTEN] path={vtt_path} frames={total_frames}")
 
 
+
 async def download_src(url: str, dest: str) -> None:
     async with httpx.AsyncClient(timeout=300.0) as client:
         r = await client.get(url)
@@ -153,12 +160,10 @@ async def download_src(url: str, dest: str) -> None:
     print(f"[DOWNLOAD OK] url={url} dest={dest}")
 
 
+
 def build_vf_chain(interval_sec: float, tile_w: int, tile_h: int) -> str:
-    # Scale to fit the tile_w x tile_h frame while maintaining the proportions (reducing along the long side),
-    # then drop to the exact size, then lower the fps.
-    # Order: scale -> pad -> fps (frames after scaling/padding).
-    # You can set the fps at the beginning – it doesn't really matter; we'll keep it after the padding.
     return f"scale={tile_w}:{tile_h}:force_original_aspect_ratio=decrease,pad={tile_w}:{tile_h}:(ow-iw)/2:(oh-ih)/2:color=black,fps=1/{interval_sec}"
+
 
 
 async def run_ffmpeg_extract_frames(
@@ -189,6 +194,7 @@ async def run_ffmpeg_extract_frames(
         raise RuntimeError(f"ffmpeg failed: {err_txt[:500]}")
     else:
         print("[FFMPEG OK] frames extracted (check directory)")
+
 
 
 async def generate_thumbnails_pipeline(
@@ -234,11 +240,19 @@ async def generate_thumbnails_pipeline(
         else:
             interval_sec = settings.PREVIEW_INTERVAL_LONG
         print(f"[ADAPTIVE INTERVAL] duration={dur} chosen={interval_sec}")
+    else:
+        dur = await probe_duration_sec(source)
 
     tw = tile_w or settings.DEFAULT_TILE_W
     th = tile_h or settings.DEFAULT_TILE_H
     c = cols or settings.DEFAULT_COLS
     r = rows or settings.DEFAULT_ROWS
+
+    if dur and interval_sec:
+        rough_frames = int(dur / interval_sec)
+        if rough_frames > settings.MAX_FRAMES:
+            interval_sec = max(settings.MIN_INTERVAL_SEC, dur / settings.MAX_FRAMES)
+            print(f"[FRAME LIMIT] rough_frames={rough_frames} > {settings.MAX_FRAMES} => interval_sec adjusted to {interval_sec:.4f}")
 
     print(f"[PARAMS] interval={interval_sec} tw={tw} th={th} cols={c} rows={r}")
 
@@ -279,6 +293,19 @@ async def generate_thumbnails_pipeline(
         tile_h=th,
     )
 
+    deleted = 0
+    for f in frames:
+        try:
+            os.remove(f)
+            deleted += 1
+        except Exception as e:
+            print("[FRAMES CLEANUP ERROR]", f, e)
+    try:
+        os.rmdir(frames_dir)
+    except Exception:
+        pass
+    print(f"[FRAMES CLEANUP] deleted={deleted} dir_removed={not os.path.exists(frames_dir)}")
+
     result = {
         "vtt": {"path": vtt_rel},
         "sprites": [{"path": f"thumbnails/sprites/{os.path.basename(p)}"} for p in sprites],
@@ -290,6 +317,7 @@ async def generate_thumbnails_pipeline(
             "cols": c,
             "rows": r,
             "src_dims": f"{w0}x{h0}",
+            "frame_limit": settings.MAX_FRAMES,
         },
     }
     return result

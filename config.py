@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     WORK_DIR: str = "/opt/ytms"
-    STORAGE_ROOT: str = "/var/www/storage"
+    STORAGE_ROOT: str = "/var/www/yurtube/storage"
     WORKERS: int = 1
 
     GLOBAL_AUTH_TOKEN: str = "dev-secret"
@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     PREVIEW_INTERVAL_LONG: float = 6.0
     PREVIEW_SHORT_MAX_SEC: int = 15 * 60
     PREVIEW_MEDIUM_MAX_SEC: int = 60 * 60
+
+    MAX_FRAMES: int = 1000
+    MIN_INTERVAL_SEC: float = 0.2
 
     model_config = SettingsConfigDict(
         env_prefix="YTMS_",
