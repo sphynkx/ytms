@@ -3,6 +3,7 @@ from schemas import ThumbnailsJobCreate, JobInfo
 
 router = APIRouter(tags=["thumbnails"])
 
+
 @router.post("/jobs/thumbnails", response_model=JobInfo, status_code=202)
 async def create_thumbnails_job(data: ThumbnailsJobCreate, request: Request):
     if not data.src_path and not data.src_url:
@@ -12,6 +13,7 @@ async def create_thumbnails_job(data: ThumbnailsJobCreate, request: Request):
     jm = request.app.state.job_manager
     info = await jm.submit_thumbnails(data)
     return info
+
 
 @router.get("/jobs/{job_id}", response_model=JobInfo)
 async def get_job(job_id: str, request: Request):
